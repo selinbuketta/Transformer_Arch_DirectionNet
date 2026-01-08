@@ -1,0 +1,126 @@
+╔══════════════════════════════════════════════════════════════════════════╗
+║                DOCKER SETUP - MANUAL STEPS REQUIRED                      ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+✅ COMPLETED CHECKS:
+  ✓ Docker is installed (version 28.5.1)
+  ✓ NVIDIA GPU drivers are working (Driver 570.195.03, CUDA 12.8)
+  ✓ NVIDIA GeForce RTX 4090 GPU detected
+
+⚠️  REQUIRES YOUR ACTION:
+
+Since Docker requires sudo/administrative privileges, you need to run the
+automated setup script with your password.
+
+╔══════════════════════════════════════════════════════════════════════════╗
+║                      EASY SETUP (RECOMMENDED)                            ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+Run this single command to complete the entire setup:
+
+    ./setup-docker.sh
+
+This script will:
+  1. Start Docker daemon
+  2. Check/install nvidia-docker2 (if needed)
+  3. Test GPU access
+  4. Build the DirectionNet Docker image
+  5. Verify the installation
+
+╔══════════════════════════════════════════════════════════════════════════╗
+║                    MANUAL SETUP (STEP-BY-STEP)                           ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+If you prefer manual control, run these commands:
+
+1️⃣  Start Docker daemon:
+    sudo systemctl start docker
+    sudo systemctl enable docker
+
+2️⃣  Test Docker:
+    docker run hello-world
+
+3️⃣  Check if nvidia-docker2 is installed:
+    dpkg -l | grep nvidia-docker2
+
+4️⃣  If nvidia-docker2 is NOT installed, install it:
+    distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | \
+        sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+    curl -s -L https://nvidia.github.io/libnvidia-container/$distribution/libnvidia-container.list | \
+        sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+        sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    sudo apt-get update
+    sudo apt-get install -y nvidia-docker2
+    sudo systemctl restart docker
+
+5️⃣  Test GPU access in Docker:
+    docker run --rm --gpus all nvidia/cuda:11.2.2-base-ubuntu18.04 nvidia-smi
+
+6️⃣  Build DirectionNet Docker image (10-15 minutes):
+    docker build -t directionnet:latest .
+
+7️⃣  Test the built image:
+    docker run --rm directionnet:latest python3.6 --version
+    docker run --rm --gpus all directionnet:latest python3.6 -c \
+        "import tensorflow as tf; print('GPUs:', len(tf.config.list_physical_devices('GPU')))"
+
+╔══════════════════════════════════════════════════════════════════════════╗
+║                        AFTER SETUP IS COMPLETE                           ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+Once setup is done, use these commands:
+
+  • Run interactive shell:
+    ./docker-run.sh run
+
+  • Run training:
+    ./docker-run.sh train --your_flags
+
+  • Run evaluation:
+    ./docker-run.sh eval --checkpoint_path
+
+  • Start TensorBoard:
+    ./docker-run.sh tensorboard
+    (Access at http://localhost:6006)
+
+  • Test GPU:
+    ./docker-run.sh test-gpu
+
+  • Cleanup:
+    ./docker-run.sh cleanup
+
+╔══════════════════════════════════════════════════════════════════════════╗
+║                          TROUBLESHOOTING                                 ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+❌ If you get "Docker daemon not running":
+   sudo systemctl start docker
+
+❌ If you get "permission denied":
+   sudo usermod -aG docker $USER
+   newgrp docker
+   # Or log out and log back in
+
+❌ If you get "could not select device driver":
+   sudo apt-get install -y nvidia-docker2
+   sudo systemctl restart docker
+
+❌ If GPU is not detected:
+   # Restart Docker daemon
+   sudo systemctl restart docker
+   # Or reboot your system
+   sudo reboot
+
+╔══════════════════════════════════════════════════════════════════════════╗
+║                           DOCUMENTATION                                  ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+  📄 DOCKER_GUIDE.md              - Comprehensive documentation
+  📄 DOCKER_SETUP_SUMMARY.md      - Technical details
+  📄 DOCKER_QUICK_REFERENCE.txt   - Quick command reference
+  📄 README.md                    - Updated with Docker info
+
+╔══════════════════════════════════════════════════════════════════════════╗
+║  RECOMMENDATION: Run ./setup-docker.sh for automatic setup               ║
+╚══════════════════════════════════════════════════════════════════════════╝

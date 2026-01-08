@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  directionnet:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: directionnet:latest
+    container_name: directionnet_container
+    
+    # GPU support
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    
+    # Environment variables
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - TF_FORCE_GPU_ALLOW_GROWTH=true
+      - PYTHONUNBUFFERED=1
+    
+    # Volume mounts
+    volumes:
+      - ./data:/app/data
+      - ./checkpoints:/app/checkpoints
+      - ./outputs:/app/outputs
+      # Uncomment below to mount source code for development
+      # - ./:/app
+    
+    # Port mappings (for TensorBoard)
+    ports:
+      - "6006:6006"
+    
+    # Keep container running
+    stdin_open: true
+    tty: true
+    
+    # Default command
+    command: /bin/bash
+    
+    # Restart policy
+    restart: unless-stopped
+
+# Optional: TensorBoard service
+  tensorboard:
+    image: directionnet:latest
+    container_name: directionnet_tensorboard
+    depends_on:
+      - directionnet
+    
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 0
+              capabilities: [gpu]
+    
+    volumes:
+      - ./checkpoints:/app/checkpoints
+    
+    ports:
+      - "6006:6006"
+    
+    command: tensorboard --logdir=/app/checkpoints --host=0.0.0.0 --port=6006
+    
+    restart: unless-stopped
